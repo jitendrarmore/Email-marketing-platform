@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     const passwordHash = await argon2.hash(password);
 
     // Create user in transaction
-    const newUser = await prisma.$transaction(async (tx) => {
+    const newUser = await prisma.$transaction(async (tx: any) => {
       const u = await tx.user.create({
         data: {
           email,
