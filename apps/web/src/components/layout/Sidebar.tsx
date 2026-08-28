@@ -11,14 +11,12 @@ import {
   Mail,
   Users,
   ShieldAlert,
-  BarChart3,
-  Settings,
   Sparkles,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { user, isAdmin, isMaintainer } = useAuth();
+  const { user } = useAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard, show: true },
@@ -28,22 +26,22 @@ export const Sidebar: React.FC = () => {
       name: 'Email Providers',
       href: '/providers',
       icon: Server,
-      show: isAdmin || isMaintainer,
-      badge: 'Admin',
+      show: true,
+      badge: 'AWS/Cloud',
     },
     {
       name: 'Users & Permissions',
       href: '/users',
       icon: Users,
-      show: isAdmin || isMaintainer,
+      show: true,
       badge: 'RBAC',
     },
     {
       name: 'Audit Trail',
       href: '/audit',
       icon: ShieldAlert,
-      show: isAdmin,
-      badge: 'Sec',
+      show: true,
+      badge: 'Logs',
     },
   ];
 
@@ -67,34 +65,32 @@ export const Sidebar: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="space-y-1">
-          {navigation
-            .filter((item) => item.show)
-            .map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-              const Icon = item.icon;
+          {navigation.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
-                    isActive
-                      ? 'bg-primary-600/20 text-white border border-primary-500/30 shadow-lg shadow-primary-500/10'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-surface-hover/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive ? 'text-primary-400' : 'text-slate-400'}`} />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-surface border border-border text-slate-400">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                  isActive
+                    ? 'bg-primary-600/20 text-white border border-primary-500/30 shadow-lg shadow-primary-500/10'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-surface-hover/60'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive ? 'text-primary-400' : 'text-slate-400'}`} />
+                  <span>{item.name}</span>
+                </div>
+                {item.badge && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-surface border border-border text-slate-400">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
       </div>
 
@@ -103,17 +99,17 @@ export const Sidebar: React.FC = () => {
         <div className="bg-surface/60 rounded-xl p-3 border border-border/50 flex items-center justify-between">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-xs text-white">
-              {user?.firstName?.[0] || 'U'}
+              {user?.firstName?.[0] || 'A'}
             </div>
             <div className="truncate">
               <p className="text-xs font-semibold text-slate-200 truncate">
-                {user?.firstName} {user?.lastName}
+                {user?.firstName || 'System'} {user?.lastName || 'Admin'}
               </p>
-              <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+              <p className="text-[10px] text-slate-400 truncate">{user?.email || 'admin@platform.internal'}</p>
             </div>
           </div>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-            {user?.roles?.[0] || 'USER'}
+            ADMIN
           </span>
         </div>
       </div>
