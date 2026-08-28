@@ -4,12 +4,22 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Navbar } from '@/components/layout/Navbar';
 import { api } from '@/lib/api';
-import { Server, Plus, RefreshCw, Inbox, ShieldCheck } from 'lucide-react';
+import { Server, Plus, RefreshCw, Inbox, ShieldCheck, X, CheckCircle2 } from 'lucide-react';
 
 export default function ProvidersPage() {
   const [testing, setTesting] = useState<string | null>(null);
   const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [providerType, setProviderType] = useState('AWS_SES');
+  const [awsRegion, setAwsRegion] = useState('us-east-1');
+  const [awsAccessKey, setAwsAccessKey] = useState('');
+  const [awsSecretKey, setAwsSecretKey] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchProviders = async () => {
     setLoading(true);
@@ -38,6 +48,38 @@ export default function ProvidersPage() {
     }
   };
 
+  const handleCreateProvider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const credentials = {
+        region: awsRegion,
+        accessKeyId: awsAccessKey,
+        secretAccessKey: awsSecretKey,
+      };
+
+      const newProvider = await api.post<any>('/providers', {
+        name,
+        providerType,
+        credentials,
+      });
+
+      setProviders((prev) => [newProvider, ...prev]);
+      setIsModalOpen(false);
+
+      // Reset form
+      setName('');
+      setAwsAccessKey('');
+      setAwsSecretKey('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create provider');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-slate-100 flex">
       <Sidebar />
@@ -54,7 +96,10 @@ export default function ProvidersPage() {
               </p>
             </div>
 
-            <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold shadow-lg shadow-primary-500/20 transition-all">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold shadow-lg shadow-primary-500/20 transition-all"
+            >
               <Plus className="w-4 h-4" />
               <span>Add Provider</span>
             </button>
@@ -68,7 +113,10 @@ export default function ProvidersPage() {
                 <p className="text-base font-semibold text-slate-200">No email providers configured</p>
                 <p className="text-xs text-slate-400 mt-1">Add an AWS SES, Azure Communication Services, or SMTP provider to start sending emails.</p>
               </div>
-              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold shadow-lg shadow-primary-500/20 transition-all">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold shadow-lg shadow-primary-500/20 transition-all"
+              >
                 <Plus className="w-4 h-4" />
                 <span>Add Provider</span>
               </button>
@@ -107,6 +155,105 @@ export default function ProvidersPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Add Provider Modal */}
+          {isModalOpen && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="w-full max-w-md glass-panel p-6 space-y-5 border-border/80 relative">
+                <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Server className="w-4 h-4 text-primary-400" /> Add Email Provider
+                  </h3>
+                  <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+                    {error}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateProvider} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Provider Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="AWS SES US East Production"
+                      className="glass-input w-full text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Provider Type</label>
+                    <select
+                      value={providerType}
+                      onChange={(e) => setProviderType(e.target.value)}
+                      className="glass-input w-full bg-surface text-xs"
+                    >
+                      <option value="AWS_SES">AWS SES (Amazon Simple Email Service)</option>
+                      <option value="AZURE_EMAIL">Azure Communication Services Email</option>
+                      <option value="SMTP">Custom SMTP Server</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">AWS Region / Host</label>
+                    <input
+                      type="text"
+                      value={awsRegion}
+                      onChange={(e) => setAwsRegion(e.target.value)}
+                      placeholder="us-east-1"
+                      className="glass-input w-full font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Access Key ID / Username</label>
+                    <input
+                      type="text"
+                      value={awsAccessKey}
+                      onChange={(e) => setAwsAccessKey(e.target.value)}
+                      placeholder="AKIA..."
+                      className="glass-input w-full font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Secret Access Key / Password</label>
+                    <input
+                      type="password"
+                      value={awsSecretKey}
+                      onChange={(e) => setAwsSecretKey(e.target.value)}
+                      placeholder="••••••••••••••••••••"
+                      className="glass-input w-full font-mono text-xs"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2 rounded-xl bg-surface border border-border text-xs font-semibold text-slate-300 hover:bg-surface-hover"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-lg shadow-primary-500/20"
+                    >
+                      {submitting ? 'Saving...' : 'Save Provider'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
         </main>
