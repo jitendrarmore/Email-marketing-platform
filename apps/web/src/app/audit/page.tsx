@@ -1,49 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Navbar } from '@/components/layout/Navbar';
-import { ShieldAlert, Search, FileText, Lock, UserCheck, Key } from 'lucide-react';
+import { api } from '@/lib/api';
+import { ShieldAlert, Inbox } from 'lucide-react';
 
 export default function AuditPage() {
-  const auditLogs = [
-    {
-      id: 'aud-101',
-      action: 'USER_GRANT_SENDER_ACCESS',
-      user: 'admin@marketing-pro.internal',
-      resource: 'User: sarah.c@marketing-pro.internal',
-      details: 'Granted access to sender newsletter@example.com',
-      ip: '192.168.1.45',
-      time: '2026-08-28 12:10:45',
-    },
-    {
-      id: 'aud-102',
-      action: 'CAMPAIGN_SUBMITTED',
-      user: 'sarah.c@marketing-pro.internal',
-      resource: 'Campaign: Q3 Product Launch Announcement',
-      details: 'Queued 15,000 recipients via AWS SES',
-      ip: '192.168.1.88',
-      time: '2026-08-28 10:15:22',
-    },
-    {
-      id: 'aud-103',
-      action: 'PROVIDER_CREATED',
-      user: 'admin@marketing-pro.internal',
-      resource: 'Provider: AWS SES Production',
-      details: 'Encrypted AES-256-GCM credentials stored',
-      ip: '192.168.1.45',
-      time: '2026-08-20 09:30:00',
-    },
-    {
-      id: 'aud-104',
-      action: 'USER_LOGIN',
-      user: 'sarah.c@marketing-pro.internal',
-      resource: 'Session',
-      details: 'JWT + Refresh Token Family issued',
-      ip: '192.168.1.88',
-      time: '2026-08-28 08:45:10',
-    },
-  ];
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<{ data: any[] }>('/audit').catch(() => ({ data: [] }));
+      setAuditLogs(res.data || []);
+    } catch (e) {
+      setAuditLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-slate-100 flex">
@@ -62,32 +43,38 @@ export default function AuditPage() {
             </div>
           </div>
 
-          {/* Audit Logs Table */}
+          {/* Audit Logs Table or Clean Empty State */}
           <div className="glass-panel overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border/60 bg-surface/50 text-slate-400 font-medium">
-                  <th className="p-4">Action</th>
-                  <th className="p-4">Actor User</th>
-                  <th className="p-4">Target Resource</th>
-                  <th className="p-4">Details</th>
-                  <th className="p-4">IP Address</th>
-                  <th className="p-4 font-mono">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40 font-mono">
-                {auditLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-surface/40 transition-all text-[11px]">
-                    <td className="p-4 font-bold text-cyan-400">{log.action}</td>
-                    <td className="p-4 text-slate-200">{log.user}</td>
-                    <td className="p-4 text-slate-300">{log.resource}</td>
-                    <td className="p-4 text-slate-400">{log.details}</td>
-                    <td className="p-4 text-slate-400">{log.ip}</td>
-                    <td className="p-4 text-slate-500">{log.time}</td>
+            {auditLogs.length === 0 ? (
+              <div className="py-16 text-center space-y-3">
+                <Inbox className="w-12 h-12 text-slate-500 mx-auto" />
+                <div>
+                  <p className="text-base font-semibold text-slate-200">No security audit logs recorded</p>
+                  <p className="text-xs text-slate-400 mt-1">State-changing events (logins, provider updates, sender permissions) will be logged here.</p>
+                </div>
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-border/60 bg-surface/50 text-slate-400 font-medium">
+                    <th className="p-4">Action</th>
+                    <th className="p-4">Actor User</th>
+                    <th className="p-4">Target Resource</th>
+                    <th className="p-4">Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/40 text-[11px]">
+                  {auditLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-surface/40 transition-all">
+                      <td className="p-4 font-bold text-cyan-400">{log.action}</td>
+                      <td className="p-4 text-slate-200">{log.userId}</td>
+                      <td className="p-4 text-slate-300">{log.resourceType} ({log.resourceId})</td>
+                      <td className="p-4 text-slate-500">{log.createdAt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </main>
       </div>

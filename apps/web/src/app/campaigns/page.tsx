@@ -1,76 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Navbar } from '@/components/layout/Navbar';
-import {
-  Send,
-  Plus,
-  Search,
-  Filter,
-  Eye,
-  Trash2,
-  Pause,
-  Play,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-} from 'lucide-react';
+import { api } from '@/lib/api';
+import { Send, Plus, Search, Filter, Eye, Inbox, RefreshCw } from 'lucide-react';
 
 export default function CampaignsPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const campaigns = [
-    {
-      id: 'c-101',
-      name: 'Q3 Product Launch Announcement',
-      subject: '🔥 Exclusive 30% Off Product Upgrades!',
-      sender: 'newsletter@example.com',
-      provider: 'AWS SES',
-      totalRecipients: 15000,
-      sentCount: 12750,
-      status: 'SENDING',
-      createdAt: '2026-08-28 10:15',
-    },
-    {
-      id: 'c-102',
-      name: 'Weekly Developer Digest #42',
-      subject: 'Top 10 Fastify & Node.js Performance Hacks',
-      sender: 'marketing@example.com',
-      provider: 'Azure Comm',
-      totalRecipients: 8400,
-      sentCount: 8400,
-      status: 'COMPLETED',
-      createdAt: '2026-08-27 14:00',
-    },
-    {
-      id: 'c-103',
-      name: 'Security Update & Policy Notice',
-      subject: 'Action Required: Update your account security settings',
-      sender: 'newsletter@example.com',
-      provider: 'Custom SMTP',
-      totalRecipients: 2100,
-      sentCount: 0,
-      status: 'QUEUED',
-      createdAt: '2026-08-28 11:45',
-    },
-    {
-      id: 'c-104',
-      name: 'Draft - Black Friday Early Access',
-      subject: 'VIP Member Early Access Pass',
-      sender: 'marketing@example.com',
-      provider: 'AWS SES',
-      totalRecipients: 0,
-      sentCount: 0,
-      status: 'DRAFT',
-      createdAt: '2026-08-28 12:30',
-    },
-  ];
+  const fetchCampaigns = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<{ data: any[] }>('/campaigns').catch(() => ({ data: [] }));
+      setCampaigns(res.data || []);
+    } catch (e) {
+      setCampaigns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
 
   const filtered = campaigns.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.subject.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = c.name?.toLowerCase().includes(search.toLowerCase()) || c.subject?.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filterStatus === 'ALL' || c.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -129,66 +89,55 @@ export default function CampaignsPage() {
             </div>
           </div>
 
-          {/* Campaigns Table */}
+          {/* Campaigns Table or Clean Empty State */}
           <div className="glass-panel overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border/60 bg-surface/50 text-slate-400 font-medium">
-                  <th className="p-4">Campaign Name & Subject</th>
-                  <th className="p-4">Sender & Provider</th>
-                  <th className="p-4">Recipients</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Created At</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {filtered.map((c) => (
-                  <tr key={c.id} className="hover:bg-surface/40 transition-all">
-                    <td className="p-4">
-                      <p className="font-bold text-slate-100">{c.name}</p>
-                      <p className="text-slate-400 text-[11px] truncate max-w-xs">{c.subject}</p>
-                    </td>
-                    <td className="p-4">
-                      <p className="font-mono text-slate-200">{c.sender}</p>
-                      <span className="text-[10px] text-slate-400">{c.provider}</span>
-                    </td>
-                    <td className="p-4">
-                      <span className="font-mono font-semibold text-slate-200">
-                        {c.sentCount.toLocaleString()} / {c.totalRecipients.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
-                          c.status === 'COMPLETED'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : c.status === 'SENDING'
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse'
-                            : c.status === 'QUEUED'
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                            : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                        }`}
-                      >
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-slate-400 font-mono text-[11px]">{c.createdAt}</td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/campaigns/${c.id}`}
-                          className="p-1.5 rounded-lg bg-surface border border-border text-slate-300 hover:text-white hover:border-primary-500 transition-all"
-                          title="View telemetry logs"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    </td>
+            {filtered.length === 0 ? (
+              <div className="py-16 text-center space-y-3">
+                <Inbox className="w-12 h-12 text-slate-500 mx-auto" />
+                <div>
+                  <p className="text-base font-semibold text-slate-200">No campaigns found</p>
+                  <p className="text-xs text-slate-400 mt-1">Start by creating your first campaign to send mass emails.</p>
+                </div>
+                <Link
+                  href="/campaigns/new"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-semibold shadow-lg shadow-primary-500/20 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Campaign</span>
+                </Link>
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border/60 bg-surface/50 text-slate-400 font-medium">
+                    <th className="p-4">Campaign Name & Subject</th>
+                    <th className="p-4">Sender & Provider</th>
+                    <th className="p-4">Recipients</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Created At</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {filtered.map((c) => (
+                    <tr key={c.id} className="hover:bg-surface/40 transition-all">
+                      <td className="p-4">
+                        <p className="font-bold text-slate-100">{c.name}</p>
+                        <p className="text-slate-400 text-[11px] truncate max-w-xs">{c.subject}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="font-mono text-slate-200">{c.senderEmail}</p>
+                        <span className="text-[10px] text-slate-400">{c.providerName}</span>
+                      </td>
+                      <td className="p-4 font-mono font-semibold text-slate-200">
+                        {c.totalRecipients || 0}
+                      </td>
+                      <td className="p-4 font-semibold">{c.status}</td>
+                      <td className="p-4 text-slate-400 font-mono text-[11px]">{c.createdAt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </main>
       </div>

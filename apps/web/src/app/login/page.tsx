@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Lock, Mail, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('admin@marketing-pro.internal');
-  const [password, setPassword] = useState('Admin123!@#');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,19 +27,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = async (type: 'admin' | 'user') => {
-    if (type === 'admin') {
-      setEmail('admin@marketing-pro.internal');
-      setPassword('Admin123!@#');
-      await login('admin@marketing-pro.internal', 'Admin123!@#');
-    } else {
-      setEmail('sarah.c@marketing-pro.internal');
-      setPassword('User123!@#');
-      await login('sarah.c@marketing-pro.internal', 'User123!@#');
-    }
-    router.push('/');
   };
 
   return (
@@ -60,27 +47,6 @@ export default function LoginPage() {
           <p className="text-xs text-slate-400">Mass Email Marketing Platform</p>
         </div>
 
-        {/* Quick Demo Login Preset Buttons */}
-        <div className="p-3 rounded-xl bg-surface/60 border border-border/60 space-y-2">
-          <p className="text-[11px] font-semibold text-slate-300 text-center">⚡ Quick Role Logins:</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin')}
-              className="py-1.5 px-3 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold hover:bg-indigo-500/30 transition-all text-center"
-            >
-              👑 Admin Role
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('user')}
-              className="py-1.5 px-3 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/30 transition-all text-center"
-            >
-              👤 Standard User
-            </button>
-          </div>
-        </div>
-
         {error && (
           <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs text-center font-medium">
             {error}
@@ -96,6 +62,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
                 required
                 className="glass-input w-full pl-9 text-xs"
               />
@@ -110,6 +77,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 required
                 className="glass-input w-full pl-9 text-xs"
               />

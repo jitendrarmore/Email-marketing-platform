@@ -1,79 +1,49 @@
 import { PrismaClient } from '@prisma/client';
-import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding database...');
+  console.log('Seeding system roles and permissions...');
 
-  // Create Roles
+  // Create System Roles
   const adminRole = await prisma.role.upsert({
-    where: { name: 'Admin' },
+    where: { name: 'ADMIN' },
     update: {},
-    create: { name: 'Admin', description: 'System Administrator' },
+    create: { name: 'ADMIN', description: 'System Administrator with full permissions' },
   });
 
   const maintainerRole = await prisma.role.upsert({
-    where: { name: 'Maintainer' },
+    where: { name: 'MAINTAINER' },
     update: {},
-    create: { name: 'Maintainer', description: 'System Maintainer' },
+    create: { name: 'MAINTAINER', description: 'System Maintainer' },
   });
 
   const userRole = await prisma.role.upsert({
-    where: { name: 'User' },
+    where: { name: 'USER' },
     update: {},
-    create: { name: 'User', description: 'Standard User' },
+    create: { name: 'USER', description: 'Standard User' },
   });
 
-  // Create wildcard permission
+  // Create Wildcard Permission
   const allPermission = await prisma.permission.upsert({
     where: { resource_action: { resource: '*', action: '*' } },
     update: {},
-    create: { resource: '*', action: '*', description: 'All access' },
+    create: { resource: '*', action: '*', description: 'Wildcard full system permission' },
   });
 
-  // Map wildcard to Admin
+  // Assign Wildcard Permission to ADMIN Role
   await prisma.rolePermission.upsert({
     where: { roleId_permissionId: { roleId: adminRole.id, permissionId: allPermission.id } },
     update: {},
     create: { roleId: adminRole.id, permissionId: allPermission.id },
   });
 
-  // Create Org
-  const defaultOrg = await prisma.organization.upsert({
-    where: { slug: 'default' },
-    update: {},
-    create: { name: 'Default Organization', slug: 'default' },
-  });
-
-  // Create Admin User
-  const passwordHash = await argon2.hash('Admin123!@#');
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      email: 'admin@example.com',
-      passwordHash,
-      firstName: 'Admin',
-      lastName: 'User',
-      orgId: defaultOrg.id,
-      status: 'ACTIVE',
-    },
-  });
-
-  // Map user to Admin role
-  await prisma.userRole.upsert({
-    where: { userId_roleId: { userId: adminUser.id, roleId: adminRole.id } },
-    update: {},
-    create: { userId: adminUser.id, roleId: adminRole.id },
-  });
-
-  console.log('Database seeding completed.');
+  console.log('System roles and permissions initialized successfully.');
 }
 
 main()
-  .catch(e => {
-    console.error(e);
+  .catch((e) => {
+    console.error('Error during seeding:', e);
     process.exit(1);
   })
   .finally(async () => {

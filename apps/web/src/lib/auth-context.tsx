@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize demo user if no token present
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('accessToken');
@@ -40,11 +39,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(userData);
         } catch (err) {
           localStorage.removeItem('accessToken');
-          // Set default mock user for seamless demonstration
-          setDefaultMockUser();
+          setUser(null);
         }
       } else {
-        setDefaultMockUser();
+        setUser(null);
       }
       setLoading(false);
     };
@@ -52,40 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const setDefaultMockUser = () => {
-    setUser({
-      id: 'demo-user-1',
-      email: 'admin@marketing-pro.internal',
-      firstName: 'Jitendra',
-      lastName: 'More',
-      orgId: 'org-demo-1',
-      roles: ['ADMIN'],
-      permissions: ['*:*'],
-    });
-  };
-
   const login = async (email: string, password: string) => {
-    try {
-      const res = await api.post<{ accessToken: string }>('/auth/login', { email, password });
-      localStorage.setItem('accessToken', res.accessToken);
-      const userData = await api.get<User>('/auth/me');
-      setUser(userData);
-    } catch (err) {
-      // Demo fallback mode for offline testing
-      if (email.includes('user')) {
-        setUser({
-          id: 'user-2',
-          email,
-          firstName: 'Sarah',
-          lastName: 'Conner',
-          orgId: 'org-demo-1',
-          roles: ['USER'],
-          permissions: ['campaigns:read', 'campaigns:create', 'campaigns:submit', 'senders:read'],
-        });
-      } else {
-        setDefaultMockUser();
-      }
-    }
+    const res = await api.post<{ accessToken: string }>('/auth/login', { email, password });
+    localStorage.setItem('accessToken', res.accessToken);
+    const userData = await api.get<User>('/auth/me');
+    setUser(userData);
   };
 
   const register = async (data: any) => {
