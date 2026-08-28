@@ -52,8 +52,7 @@ export default function SendersPage() {
   const handleVerifyIdentity = async (senderId: string) => {
     setVerifyingId(senderId);
     try {
-      // Simulate/trigger cloud provider verification call
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await api.post(`/senders/${senderId}/verify`);
       setSenders((prev) =>
         prev.map((s) =>
           s.id === senderId ? { ...s, verificationStatus: 'VERIFIED' } : s
@@ -254,7 +253,7 @@ export default function SendersPage() {
                           setDomain(e.target.value.split('@')[1]);
                         }
                       }}
-                      placeholder="newsletter@company.com"
+                      placeholder="newsletter@jblegal.online"
                       className="glass-input w-full font-mono text-xs"
                     />
                   </div>
@@ -265,8 +264,8 @@ export default function SendersPage() {
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Newsletter Team"
-                      className="glass-input w-full"
+                      placeholder="JB Legal Team"
+                      className="glass-input w-full text-xs"
                     />
                   </div>
 
@@ -276,7 +275,7 @@ export default function SendersPage() {
                       type="text"
                       value={domain}
                       onChange={(e) => setDomain(e.target.value)}
-                      placeholder="company.com"
+                      placeholder="jblegal.online"
                       className="glass-input w-full font-mono text-xs"
                     />
                   </div>
