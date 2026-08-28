@@ -1,0 +1,325 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum CampaignStatus {
+  DRAFT
+  VALIDATING
+  QUEUED
+  SENDING
+  PAUSED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum ProviderType {
+  AWS_SES
+  AZURE_COMMUNICATION
+  SMTP
+  CUSTOM
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum RecipientStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+enum EmailLogStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  FAILED
+}
+
+enum DeliveryEventType {
+  SEND
+  DELIVERY
+  OPEN
+  CLICK
+  BOUNCE
+  COMPLAINT
+}
+
+model Organization {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  settings         Json?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  users            User[]
+  providerConfigs  ProviderConfig[]
+  senderIdentities SenderIdentity[]
+  campaigns        Campaign[]
+  auditLogs        AuditLog[]
+}
+
+model User {
+  id               String             @id @default(uuid())
+  orgId            String
+  email            String             @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  status           UserStatus         @default(ACTIVE)
+  lastLogin        DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  organization     Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userRoles        UserRole[]
+  userSenderAccess UserSenderAccess[]
+  campaigns        Campaign[]
+  auditLogs        AuditLog[]
+  refreshTokens    RefreshToken[]
+
+  @@index([orgId, email])
+  @@index([orgId, status])
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  resource        String
+  action          String
+  description     String?
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+}
+
+model UserRole {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model ProviderConfig {
+  id                   String           @id @default(uuid())
+  orgId                String
+  name                 String
+  providerType         ProviderType
+  credentialsEncrypted String
+  settings             Json?
+  isActive             Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  organization         Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  senderIdentities     SenderIdentity[]
+  campaigns            Campaign[]
+
+  @@index([orgId, providerType])
+}
+
+model SenderIdentity {
+  id                 String             @id @default(uuid())
+  orgId              String
+  providerConfigId   String
+  emailAddress       String
+  displayName        String?
+  domain             String
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  organization       Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  providerConfig     ProviderConfig     @relation(fields: [providerConfigId], references: [id], onDelete: Restrict)
+  userSenderAccess   UserSenderAccess[]
+  campaigns          Campaign[]
+
+  @@unique([orgId, emailAddress])
+  @@index([orgId, domain])
+}
+
+model UserSenderAccess {
+  id               String         @id @default(uuid())
+  userId           String
+  senderIdentityId String
+  isActive         Boolean        @default(true)
+  grantedAt        DateTime       @default(now())
+  grantedBy        String?
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderIdentity   SenderIdentity @relation(fields: [senderIdentityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, senderIdentityId])
+}
+
+model Campaign {
+  id                 String         @id @default(uuid())
+  orgId              String
+  createdById        String
+  senderIdentityId   String
+  providerConfigId   String
+  name               String
+  subject            String
+  bodyHtml           String?
+  bodyText           String?
+  signature          Json?
+  status             CampaignStatus @default(DRAFT)
+  trackingOptions    Json?
+  idempotencyKey     String         @unique
+  totalRecipients    Int            @default(0)
+  scheduledAt        DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  organization       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdBy          User           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  senderIdentity     SenderIdentity @relation(fields: [senderIdentityId], references: [id], onDelete: Restrict)
+  providerConfig     ProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Restrict)
+  recipients         Recipient[]
+  emailLogs          EmailLog[]
+  stats              CampaignStats?
+
+  @@index([orgId, status])
+  @@index([orgId, createdById])
+  @@index([createdAt])
+}
+
+model Recipient {
+  id          String          @id @default(uuid())
+  campaignId  String
+  email       String
+  name        String?
+  mergeFields Json?
+  status      RecipientStatus @default(PENDING)
+  createdAt   DateTime        @default(now())
+  campaign    Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  emailLogs   EmailLog[]
+
+  @@index([campaignId, status])
+}
+
+model EmailLog {
+  id                String         @id @default(uuid())
+  campaignId        String
+  recipientId       String
+  providerMessageId String?
+  status            EmailLogStatus
+  idempotencyKey    String         @unique
+  attemptCount      Int            @default(0)
+  errorMessage      String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+  bouncedAt         DateTime?
+  createdAt         DateTime       @default(now())
+  campaign          Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recipient         Recipient      @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  deliveryEvents    DeliveryEvent[]
+
+  @@index([campaignId, status])
+  @@index([providerMessageId])
+  @@index([createdAt])
+}
+
+model DeliveryEvent {
+  id              String            @id @default(uuid())
+  emailLogId      String
+  eventType       DeliveryEventType
+  rawPayload      Json
+  providerEventId String?
+  eventTimestamp  DateTime
+  receivedAt      DateTime          @default(now())
+  emailLog        EmailLog          @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+
+  @@index([emailLogId, eventType])
+  @@index([providerEventId])
+}
+
+model CampaignStats {
+  id            String   @id @default(uuid())
+  campaignId    String   @unique
+  total         Int      @default(0)
+  sent          Int      @default(0)
+  delivered     Int      @default(0)
+  opened        Int      @default(0)
+  clicked       Int      @default(0)
+  bounced       Int      @default(0)
+  complained    Int      @default(0)
+  failed        Int      @default(0)
+  lastUpdated   DateTime @updatedAt
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id           String       @id @default(uuid())
+  orgId        String
+  userId       String?
+  action       String
+  resourceType String
+  resourceId   String?
+  oldValues    Json?
+  newValues    Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime     @default(now())
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt])
+  @@index([userId, action])
+  @@index([resourceType, resourceId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  familyId  String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([tokenHash])
+}

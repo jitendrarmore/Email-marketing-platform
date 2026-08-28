@@ -1,0 +1,4 @@
+export interface CreateCampaignRequest { name: string; senderIdentityId: string; providerConfigId: string; subject: string; bodyHtml?: string; bodyText?: string; signature?: { text: string; html: string }; trackingOptions?: { openTracking: boolean; clickTracking: boolean }; }
+export interface CampaignResponse { id: string; name: string; subject: string; status: string; senderEmail: string; providerName: string; totalRecipients: number; stats?: CampaignStatsResponse; createdAt: string; startedAt?: string; completedAt?: string; }
+export interface CampaignStatsResponse { total: number; sent: number; delivered: number; opened: number; clicked: number; bounced: number; complained: number; failed: number; }
+export interface RecipientUploadResult { totalRows: number; validRows: number; invalidRows: number; errors: string[]; }
