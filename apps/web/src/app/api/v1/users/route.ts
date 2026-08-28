@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import * as argon2 from 'argon2';
+import crypto from 'node:crypto';
+
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
 
 /**
  * GET /api/v1/users - List users
@@ -69,8 +75,8 @@ export async function POST(request: Request) {
       });
     }
 
-    // Hash password
-    const passwordHash = await argon2.hash(password);
+    // Hash password using native Node.js crypto
+    const passwordHash = hashPassword(password);
 
     // Create user in transaction
     const newUser = await prisma.$transaction(async (tx: any) => {
