@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding system roles and permissions...');
+  console.log('Seeding system roles, permissions, default organization and initial Admin account...');
 
-  // Create System Roles
+  // 1. Create System Roles
   const adminRole = await prisma.role.upsert({
     where: { name: 'ADMIN' },
     update: {},
@@ -24,21 +25,57 @@ async function main() {
     create: { name: 'USER', description: 'Standard User' },
   });
 
-  // Create Wildcard Permission
+  // 2. Create Wildcard Permission
   const allPermission = await prisma.permission.upsert({
     where: { resource_action: { resource: '*', action: '*' } },
     update: {},
     create: { resource: '*', action: '*', description: 'Wildcard full system permission' },
   });
 
-  // Assign Wildcard Permission to ADMIN Role
+  // 3. Assign Wildcard Permission to ADMIN Role
   await prisma.rolePermission.upsert({
     where: { roleId_permissionId: { roleId: adminRole.id, permissionId: allPermission.id } },
     update: {},
     create: { roleId: adminRole.id, permissionId: allPermission.id },
   });
 
-  console.log('System roles and permissions initialized successfully.');
+  // 4. Create Default Organization
+  const defaultOrg = await prisma.organization.upsert({
+    where: { slug: 'default-org' },
+    update: {},
+    create: { name: 'Primary Organization', slug: 'default-org' },
+  });
+
+  // 5. Create Initial Admin Account
+  const passwordHash = await argon2.hash('Admin123!@#');
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@platform.internal' },
+    update: {
+      passwordHash,
+      orgId: defaultOrg.id,
+      status: 'ACTIVE',
+    },
+    create: {
+      email: 'admin@platform.internal',
+      passwordHash,
+      firstName: 'System',
+      lastName: 'Admin',
+      orgId: defaultOrg.id,
+      status: 'ACTIVE',
+    },
+  });
+
+  // 6. Assign ADMIN role to adminUser
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: adminUser.id, roleId: adminRole.id } },
+    update: {},
+    create: { userId: adminUser.id, roleId: adminRole.id },
+  });
+
+  console.log('✅ Initial Admin Account created:');
+  console.log('   Email: admin@platform.internal');
+  console.log('   Password: Admin123!@#');
+  console.log('   Role: ADMIN');
 }
 
 main()
