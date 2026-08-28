@@ -1,16 +1,16 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/v1/campaigns/route": "app/api/v1/campaigns/route.js",
-  "/api/v1/providers/route": "app/api/v1/providers/route.js",
   "/api/v1/senders/route": "app/api/v1/senders/route.js",
   "/api/v1/users/[id]/route": "app/api/v1/users/[id]/route.js",
+  "/api/v1/campaigns/route": "app/api/v1/campaigns/route.js",
+  "/api/v1/providers/route": "app/api/v1/providers/route.js",
+  "/audit/page": "app/audit/page.js",
+  "/api/v1/users/route": "app/api/v1/users/route.js",
   "/campaigns/page": "app/campaigns/page.js",
   "/login/page": "app/login/page.js",
   "/page": "app/page.js",
-  "/api/v1/users/route": "app/api/v1/users/route.js",
-  "/providers/page": "app/providers/page.js",
   "/users/page": "app/users/page.js",
-  "/audit/page": "app/audit/page.js",
-  "/campaigns/new/page": "app/campaigns/new/page.js",
-  "/senders/page": "app/senders/page.js"
+  "/providers/page": "app/providers/page.js",
+  "/senders/page": "app/senders/page.js",
+  "/campaigns/new/page": "app/campaigns/new/page.js"
 }
