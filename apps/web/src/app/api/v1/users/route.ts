@@ -17,13 +17,13 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    const formatted = users.map((u) => ({
+    const formatted = users.map((u: any) => ({
       id: u.id,
       email: u.email,
       firstName: u.firstName,
       lastName: u.lastName,
       status: u.status,
-      roles: u.userRoles.map((r) => r.role.name),
+      roles: u.userRoles.map((r: any) => r.role.name),
       createdAt: u.createdAt.toISOString(),
     }));
 

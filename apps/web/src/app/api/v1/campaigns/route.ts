@@ -12,7 +12,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    const formatted = campaigns.map((c) => ({
+    const formatted = campaigns.map((c: any) => ({
       id: c.id,
       name: c.name,
       subject: c.subject,
